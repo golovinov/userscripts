@@ -1,23 +1,13 @@
 // ==UserScript==
 // @name        S3 Helper
-// @namespace   Violentmonkey Scripts
+// @namespace   Saby
 // @grant       none
-// @version     1.1
-// @author      -
-// @include      *sbis.ru/*
-// @include      *saby.ru/*
-// @include      *sabyget.ru/*
-// @include      *sabytrade.ru/*
-// @include      *reg.tensor.ru/*
-// @include      *region.tensor.ru*
-// @include      *corp.tensor.ru*
+// @version     1.1.1
+// @description: добавляет в куки s3debug
+// @match        *://*.sbis.ru/*
+// @match        *://*.saby.ru/*
+// @match        *://*.sabyget.ru/*
 // @downloadURL     https://raw.githubusercontent.com/golovinov/userscripts/refs/heads/main/s3.js
-// @grant        unsafeWindow
-// @grant        GM_info
-// @grant        GM_getValue
-// @grant        GM_setValue
-// @grant        GM_notification
-// @grant        GM_openInTab
 // ==/UserScript==
 
 (function(win){
