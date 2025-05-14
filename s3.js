@@ -8,6 +8,8 @@
 // @match        *://*.saby.ru/*
 // @match        *://*.sabyget.ru/*
 // @downloadURL     https://raw.githubusercontent.com/golovinov/userscripts/refs/heads/main/s3.js
+// @grant       GM.setValue
+// @grant       GM.getValue
 // ==/UserScript==
 
 (function(win){
@@ -20,6 +22,19 @@
         Chatbot: ['Chatbot', 'Chatbot-client','Route'],
         Platform: ['Page']
     };
+
+    async function getTemporaryModules() {
+        return await GM.getValue('temporaryModules', []);
+    }
+
+    async function addTemporaryModule(module) {
+        let tempModules = await getTemporaryModules();
+        if (!tempModules.includes(module)) {
+            tempModules.push(module);
+            if (tempModules.length > 10) tempModules.shift();
+            await GM.setValue('temporaryModules', tempModules);
+        }
+    }
 
     function getCookie(name) {
         let matches = document.cookie.match(new RegExp(
@@ -42,7 +57,7 @@
 
     const hr = () => { document.cookie = 's3HotReload=3000;path=/'; }
 
-    const s3 = (moduleInput, options) => {
+    const s3 = async (moduleInput, options) => {
         if (!moduleInput) return;
 
         const current = getCookie('s3debug') || '';
@@ -50,10 +65,15 @@
 
         const newModules = moduleInput.split(',').map(m => m.trim()).filter(m => m);
 
+        const fixedList = Object.values(fixedModules).flat();
+
         for (const mod of newModules) {
             if (!modules.includes(mod)) {
                 modules.push(mod);
                 addedModules.add(mod);
+                if (!fixedList.includes(mod)) {
+                    await addTemporaryModule(mod);
+                }
             }
         }
 
@@ -75,8 +95,9 @@
         showDebug();
     }
 
-    function showDebug() {
+    async function showDebug() {
         const debList = (getCookie('s3debug') || '').split(',');
+        const savedTempModules = await getTemporaryModules();
 
         if (debList.length === 0) return;
 
@@ -103,7 +124,10 @@
             moduleList = document.createElement('div');
             moduleList.id = 'moduleList';
             moduleList.style = 'display:none; padding: 5px; background: white; position: fixed; top: 20px; right: 0; border: 1px solid #ccc; font-size: 12px; z-index: 1000; opacity: 0.8; border-radius: 5px; box-shadow: 1px 1px 0 rgba(0,0,0,.198);';
-
+            b.appendChild(moduleList);
+        } else {
+            moduleList.innerHTML = '';
+        }
             const displayedModules = new Set(Object.values(fixedModules).flat());
 
             Object.entries(fixedModules).forEach(([group, modules]) => {
@@ -118,7 +142,7 @@
                 });
             });
 
-            const tempModules = debList.filter(mod => !displayedModules.has(mod));
+            const tempModules = [...new Set([...debList.filter(mod => !displayedModules.has(mod)), ...savedTempModules])];
 
             if (tempModules.length) {
                 const tempTitle = document.createElement('div');
@@ -130,7 +154,7 @@
             }
 
             b.appendChild(moduleList);
-        }
+       // }
     }
 
     function createCheckbox(container, module, debList) {
