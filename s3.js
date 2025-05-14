@@ -11,6 +11,7 @@
 // @include      *reg.tensor.ru/*
 // @include      *region.tensor.ru*
 // @include      *corp.tensor.ru*
+// @downloadURL     https://raw.githubusercontent.com/golovinov/userscripts/refs/heads/main/s3.js
 // @grant        unsafeWindow
 // @grant        GM_info
 // @grant        GM_getValue
