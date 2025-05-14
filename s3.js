@@ -1,5 +1,5 @@
 // ==UserScript==
-// @name        Saby Helpers
+// @name        S3 Helper
 // @namespace   Violentmonkey Scripts
 // @grant       none
 // @version     1.0
