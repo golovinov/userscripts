@@ -2,7 +2,7 @@
 // @name        S3 Helper
 // @namespace   Violentmonkey Scripts
 // @grant       none
-// @version     1.0
+// @version     1.1
 // @author      -
 // @include      *sbis.ru/*
 // @include      *saby.ru/*
