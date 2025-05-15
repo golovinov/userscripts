@@ -2,7 +2,7 @@
 // @name        S3 Helper
 // @namespace   Saby
 // @grant       none
-// @version     1.1.1
+// @version     1.2.0
 // @description: добавляет в куки s3debug
 // @match        *://*.sbis.ru/*
 // @match        *://*.saby.ru/*
@@ -103,6 +103,12 @@
         }
     }
 
+    function clearContainer(container) {
+        while (container.firstChild) {
+            container.firstChild.remove();
+        }
+    }
+
     async function showDebug() {
         const debList = (getCookie('s3debug') || '').split(',').filter(e=>!!e);
         const savedTempModules = await getTemporaryModules();
@@ -134,7 +140,7 @@
             moduleList.style = 'display:none; padding: 5px; background: white; position: fixed; top: 20px; right: 0; border: 1px solid #ccc; font-size: 12px; z-index: 1000; opacity: 0.8; border-radius: 5px; box-shadow: 1px 1px 0 rgba(0,0,0,.198);';
             b.appendChild(moduleList);
         } else {
-            moduleList.innerHTML = '';
+            clearContainer(moduleList);
         }
         const displayedModules = new Set(Object.values(fixedModules).flat());
 
@@ -161,7 +167,23 @@
             tempModules.forEach(module => createCheckbox(moduleList, module, debList, true));
         }
 
-        b.appendChild(moduleList);
+        const input = document.createElement('input');
+        input.type = 'text';
+        input.placeholder = 'Добавить модуль...';
+        input.style = 'height: 14px; padding: 2px; border: 1px solid #ccc; border-radius: 3px; width: 150px; margin-top: 5px;';
+        input.addEventListener('keydown', async (e) => {
+            if (e.key === 'Enter') {
+                const moduleName = input.value.trim();
+                if (moduleName) {
+                    await s3(moduleName);
+                    input.value = '';
+                }
+            }
+        });
+
+        moduleList.appendChild(input);
+
+        //b.appendChild(moduleList);
     }
 
     function createCheckbox(container, module, debList, isTemp = false) {
