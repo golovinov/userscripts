@@ -15,25 +15,64 @@
 (function (win) {
     console.log('⌛ S3: initialization in process');
 
+    const TMP_GROUP_NAME = 'Временные';
+    const MAX_TEMP_MODULES = 10;
+
     let addedModules = new Set();
     const fixedModules = {
         BaseChats: ['Channel', 'ChannelChat', 'Intent', 'Message', 'QuickReply'],
         Consultant: ['Consultant', 'WidgetEmbedScriptRouting'],
         Chatbot: ['Chatbot', 'Chatbot-client', 'Route'],
-        Platform: ['Page']
+        Platform: ['Controls','Page']
     };
+    const flatFixedModules = Object.values(fixedModules).flat();
 
     async function getTemporaryModules() {
-        return await GM.getValue('temporaryModules', []);
+        const tm =  await GM.getValue('temporaryModules', {}) || {};
+        if (Array.isArray(tm) || typeof tm !== 'object') {
+            return {};
+        }
+        return tm;
     }
 
     async function addTemporaryModule(module) {
         let tempModules = await getTemporaryModules();
-        if (!tempModules.includes(module)) {
-            tempModules.push(module);
-            if (tempModules.length > 10) tempModules.shift();
-            await GM.setValue('temporaryModules', tempModules);
+
+        let group = TMP_GROUP_NAME;
+        let name = module;
+
+        if (module.includes('/')) {
+            [group, name] = module.split('/');
         }
+
+        if (flatFixedModules.includes(name)) {
+            return Promise.resolve();
+        }
+
+        if (!tempModules[group]) {
+            tempModules[group] = [];
+        }
+
+        if (!tempModules[group].includes(name)) {
+            tempModules[group].push(name);
+        }
+
+        if (tempModules[TMP_GROUP_NAME] && tempModules[TMP_GROUP_NAME].length > MAX_TEMP_MODULES) {
+            tempModules[TMP_GROUP_NAME].shift();
+        }
+        await GM.setValue('temporaryModules', tempModules);
+    }
+
+    async function removeTemporaryModule(module) {
+        const tempModules = await getTemporaryModules();
+
+        for (const group in tempModules) {
+            tempModules[group] = tempModules[group].filter(m => m !== module);
+            if (tempModules[group].length === 0) {
+                delete tempModules[group];
+            }
+        }
+        await GM.setValue('temporaryModules', tempModules);
     }
 
     function getCookie(name) {
@@ -70,10 +109,11 @@
         const fixedList = Object.values(fixedModules).flat();
 
         for (const mod of newModules) {
-            if (!modules.includes(mod)) {
-                modules.push(mod);
-                addedModules.add(mod);
-                if (!fixedList.includes(mod)) {
+            const modName = mod.includes('/') ? mod.split('/')[1] : mod;
+            if (!modules.includes(modName)) {
+                modules.push(modName);
+                addedModules.add(modName);
+                if (!fixedList.includes(modName)) {
                     await addTemporaryModule(mod);
                 }
             }
@@ -112,6 +152,7 @@
     async function showDebug() {
         const debList = (getCookie('s3debug') || '').split(',').filter(e=>!!e);
         const savedTempModules = await getTemporaryModules();
+        const addedModules = new Set();
 
         //if (debList.length === 0) return;
 
@@ -142,30 +183,41 @@
         } else {
             clearContainer(moduleList);
         }
-        const displayedModules = new Set(Object.values(fixedModules).flat());
 
-        Object.entries(fixedModules).forEach(([group, modules]) => {
+        function addToCollection(collection, modulesStructure) {
+            Object.keys(modulesStructure).forEach(key => {
+                if (!collection[key]) {
+                    collection[key] = [];
+                }
+                collection[key] = [...new Set([...collection[key], ...modulesStructure[key]])];
+            })
+            return collection;
+        }
+
+
+        // все модули которые нашлись в сохраненных и фиксированных
+        const displayedModules = addToCollection({}, fixedModules);
+        addToCollection(displayedModules, savedTempModules);
+
+        const flatDisplayed= Object.values(displayedModules).flat();
+        const floatModules = [...new Set([...debList.filter(m => !flatDisplayed.includes(m))])];
+
+        if (floatModules.length) {
+            const floatModuleStructure = {};
+            floatModuleStructure[TMP_GROUP_NAME] = floatModules;
+            addToCollection(displayedModules, floatModuleStructure);
+        }
+
+        Object.entries(displayedModules).forEach(([group, modules]) => {
             const groupTitle = document.createElement('div');
             groupTitle.style = 'font-weight: bold; margin-top: 5px; margin-bottom: 3px;';
             groupTitle.textContent = group;
             moduleList.appendChild(groupTitle);
-
             modules.forEach(module => {
-                createCheckbox(moduleList, module, debList);
-                displayedModules.add(module);
+                const isTemp= !flatFixedModules.includes(module);
+                createCheckbox(moduleList, module, debList, isTemp);
             });
         });
-
-        const tempModules = [...new Set([...debList.filter(mod => !displayedModules.has(mod)), ...savedTempModules])];
-
-        if (tempModules.length) {
-            const tempTitle = document.createElement('div');
-            tempTitle.style = 'font-weight: bold; margin-top: 5px; margin-bottom: 3px;';
-            tempTitle.textContent = 'Временные';
-            moduleList.appendChild(tempTitle);
-
-            tempModules.forEach(module => createCheckbox(moduleList, module, debList, true));
-        }
 
         const input = document.createElement('input');
         input.type = 'text';
@@ -182,8 +234,6 @@
         });
 
         moduleList.appendChild(input);
-
-        //b.appendChild(moduleList);
     }
 
     function createCheckbox(container, module, debList, isTemp = false) {
@@ -207,9 +257,7 @@
                 s3d(module,{},true);
 
                 // Удаляем модуль из temporaryModules
-                let tempModules = await getTemporaryModules();
-                tempModules = tempModules.filter(mod => mod !== module);
-                await GM.setValue('temporaryModules', tempModules);
+                await removeTemporaryModule(module)
 
                 // Убираем элемент из DOM
                 label.remove();
