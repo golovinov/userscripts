@@ -12,14 +12,14 @@
 // @grant       GM.getValue
 // ==/UserScript==
 
-(function(win){
+(function (win) {
     console.log('⌛ S3: initialization in process');
 
     let addedModules = new Set();
     const fixedModules = {
-        BaseChats: ['Channel', 'ChannelChat',  'Intent', 'Message', 'QuickReply'],
+        BaseChats: ['Channel', 'ChannelChat', 'Intent', 'Message', 'QuickReply'],
         Consultant: ['Consultant', 'WidgetEmbedScriptRouting'],
-        Chatbot: ['Chatbot', 'Chatbot-client','Route'],
+        Chatbot: ['Chatbot', 'Chatbot-client', 'Route'],
         Platform: ['Page']
     };
 
@@ -44,7 +44,7 @@
     }
 
     function setCookie(name, value, options = {}) {
-        options = { path: '/', ...options };
+        options = {path: '/', ...options};
         if (options.expires instanceof Date) options.expires = options.expires.toUTCString();
         let updatedCookie = encodeURIComponent(name) + "=" + value;
         for (let optionKey in options) {
@@ -55,7 +55,9 @@
         document.cookie = updatedCookie;
     }
 
-    const hr = () => { document.cookie = 's3HotReload=3000;path=/'; }
+    const hr = () => {
+        document.cookie = 's3HotReload=3000;path=/';
+    }
 
     const s3 = async (moduleInput, options) => {
         if (!moduleInput) return;
@@ -77,11 +79,15 @@
             }
         }
 
-        setCookie('s3debug', [...new Set(modules)].join(','), { secure: true, samesite: 'None', domain: '.sbis.ru', ...options });
+        setCookie('s3debug', [...new Set(modules)].join(','), {
+            secure: true,
+            samesite: 'None',
+            domain: '.sbis.ru', ...options
+        });
         showDebug();
     }
 
-    const s3d = (moduleInput, options) => {
+    const s3d = (moduleInput, options, skipUpdate) => {
         if (!moduleInput) return;
 
         const current = getCookie('s3debug') || '';
@@ -91,15 +97,17 @@
 
         modules = modules.filter(mod => !removeModules.includes(mod));
 
-        setCookie('s3debug', modules.join(','), { secure: true, samesite: 'None', domain: '.sbis.ru', ...options });
-        showDebug();
+        setCookie('s3debug', modules.join(','), {secure: true, samesite: 'None', domain: '.sbis.ru', ...options});
+        if (!skipUpdate) {
+            showDebug();
+        }
     }
 
     async function showDebug() {
-        const debList = (getCookie('s3debug') || '').split(',');
+        const debList = (getCookie('s3debug') || '').split(',').filter(e=>!!e);
         const savedTempModules = await getTemporaryModules();
 
-        if (debList.length === 0) return;
+        //if (debList.length === 0) return;
 
         const b = document.body;
         let div = document.querySelector('#debugModules');
@@ -128,36 +136,35 @@
         } else {
             moduleList.innerHTML = '';
         }
-            const displayedModules = new Set(Object.values(fixedModules).flat());
+        const displayedModules = new Set(Object.values(fixedModules).flat());
 
-            Object.entries(fixedModules).forEach(([group, modules]) => {
-                const groupTitle = document.createElement('div');
-                groupTitle.style = 'font-weight: bold; margin-top: 5px; margin-bottom: 3px;';
-                groupTitle.textContent = group;
-                moduleList.appendChild(groupTitle);
+        Object.entries(fixedModules).forEach(([group, modules]) => {
+            const groupTitle = document.createElement('div');
+            groupTitle.style = 'font-weight: bold; margin-top: 5px; margin-bottom: 3px;';
+            groupTitle.textContent = group;
+            moduleList.appendChild(groupTitle);
 
-                modules.forEach(module => {
-                    createCheckbox(moduleList, module, debList);
-                    displayedModules.add(module);
-                });
+            modules.forEach(module => {
+                createCheckbox(moduleList, module, debList);
+                displayedModules.add(module);
             });
+        });
 
-            const tempModules = [...new Set([...debList.filter(mod => !displayedModules.has(mod)), ...savedTempModules])];
+        const tempModules = [...new Set([...debList.filter(mod => !displayedModules.has(mod)), ...savedTempModules])];
 
-            if (tempModules.length) {
-                const tempTitle = document.createElement('div');
-                tempTitle.style = 'font-weight: bold; margin-top: 5px; margin-bottom: 3px;';
-                tempTitle.textContent = 'Временные';
-                moduleList.appendChild(tempTitle);
+        if (tempModules.length) {
+            const tempTitle = document.createElement('div');
+            tempTitle.style = 'font-weight: bold; margin-top: 5px; margin-bottom: 3px;';
+            tempTitle.textContent = 'Временные';
+            moduleList.appendChild(tempTitle);
 
-                tempModules.forEach(module => createCheckbox(moduleList, module, debList));
-            }
+            tempModules.forEach(module => createCheckbox(moduleList, module, debList, true));
+        }
 
-            b.appendChild(moduleList);
-       // }
+        b.appendChild(moduleList);
     }
 
-    function createCheckbox(container, module, debList) {
+    function createCheckbox(container, module, debList, isTemp = false) {
         const label = document.createElement('label');
         label.style = 'margin-left: 3px;';
         const checkbox = document.createElement('input');
@@ -168,6 +175,27 @@
         });
         label.appendChild(checkbox);
         label.appendChild(document.createTextNode(' ' + module));
+
+        if (isTemp) {
+            const closeBtn = document.createElement('span');
+            closeBtn.textContent = '❌';
+            closeBtn.style = 'margin-left: 5px; cursor: pointer; color: red;';
+            closeBtn.addEventListener('click', async () => {
+                // Удаляем модуль из s3debug
+                s3d(module,{},true);
+
+                // Удаляем модуль из temporaryModules
+                let tempModules = await getTemporaryModules();
+                tempModules = tempModules.filter(mod => mod !== module);
+                await GM.setValue('temporaryModules', tempModules);
+
+                // Убираем элемент из DOM
+                label.remove();
+                showDebug();
+            });
+            label.appendChild(closeBtn);
+        }
+
         container.appendChild(label);
         container.appendChild(document.createElement('br'));
     }
