@@ -2,7 +2,7 @@
 // @name        S3 Helper
 // @namespace   Saby
 // @grant       none
-// @version     1.2.0
+// @version     1.2.1
 // @description: добавляет в куки s3debug
 // @match        *://*.sbis.ru/*
 // @match        *://*.saby.ru/*
@@ -33,6 +33,13 @@
             return {};
         }
         return tm;
+    }
+
+    function getCurrentDomain() {
+        const host = location.hostname;
+        if (host.endsWith('.sbis.ru')) return '.sbis.ru';
+        if (host.endsWith('.saby.ru')) return '.saby.ru';
+        return undefined;
     }
 
     async function addTemporaryModule(module) {
@@ -122,7 +129,7 @@
         setCookie('s3debug', [...new Set(modules)].join(','), {
             secure: true,
             samesite: 'None',
-            domain: '.sbis.ru', ...options
+            domain: getCurrentDomain(), ...options
         });
         showDebug();
     }
@@ -137,7 +144,7 @@
 
         modules = modules.filter(mod => !removeModules.includes(mod));
 
-        setCookie('s3debug', modules.join(','), {secure: true, samesite: 'None', domain: '.sbis.ru', ...options});
+        setCookie('s3debug', modules.join(','), {secure: true, samesite: 'None', domain: getCurrentDomain(), ...options});
         if (!skipUpdate) {
             showDebug();
         }
