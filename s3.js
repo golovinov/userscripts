@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name        S3 Helper
 // @namespace   Saby
-// @version     1.3.0
+// @version     1.3.1
 // @description добавляет в куки s3debug
 // @match        *://*.sbis.ru/*
 // @match        *://*.saby.ru/*
@@ -286,6 +286,6 @@
     win.s3 = s3;
     win.showDebug = showDebug;
 
-    showDebug();
+    showDebug(window);
 
 })();
