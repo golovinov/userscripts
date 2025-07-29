@@ -1,13 +1,13 @@
 // ==UserScript==
 // @name        S3 Helper
 // @namespace   Saby
-// @grant       none
-// @version     1.2.1
-// @description: добавляет в куки s3debug
+// @version     1.3.0
+// @description добавляет в куки s3debug
 // @match        *://*.sbis.ru/*
 // @match        *://*.saby.ru/*
 // @match        *://*.sabyget.ru/*
 // @downloadURL     https://raw.githubusercontent.com/golovinov/userscripts/refs/heads/main/s3.js
+// @updateURL     https://raw.githubusercontent.com/golovinov/userscripts/refs/heads/main/s3.js
 // @grant       GM.setValue
 // @grant       GM.getValue
 // ==/UserScript==
@@ -288,4 +288,4 @@
 
     showDebug();
 
-})(unsafeWindow);
+})();
